@@ -1,0 +1,41 @@
+---
+title: "Report Structure"
+author: "Mei Sheng"
+date: "10/11/2016"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Assuming we are a company focused on online dating app and website, we want to make some business strategy and decision based on the data we have collected.
+Our main purpose of this report includes 3 parts:
+# 
+1. Newcutomer  Acquisition
+How does our origial user look like? demographic analysis (Lawrence & Marnelia) (Yerik)
+How can we find new sorucres of growth? 
+*Eg. the relationship between people's preference or habits of cellphone and Internet in daily life and online dating preference  (Mei & Zhewei) 
+
+Find our target users (protential users who are not against online dating but haven't use it before) (Lawrence & Marnelia)
+cluster?? if cluster doesn't work, we can do the following analysis:
+according to their attitude on online dating , we can find people who choose agreee more than 3 out of 6 questions as our protential user and analyse their behavior 
+
+2. Marketing strategy
+According to the characteristic of protential users, make our marketing strategy ( where to advertise: social media, online shopping website...) 
+We analyze the following relationship based on the available data in our dataset:
+                                       
+(1) relationship between job searching preference and online dating preference  (Mei & Zhewei)  
+(2) relationship between gaming and online dating preference (Yerik & Virat)
+
+3. Monetization
+how to tell advertisers that our users are their target audience
+(1) app users' employment status => more potential buyer (Mei & Zhewei) 
+(2) relationship between jobsearching and online dating ( if we can use online dating to predict users' behavior of job searching) (Mei & Zhewei) 
+
+
+
+```{r}
+
+```
+

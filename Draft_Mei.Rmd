@@ -1,0 +1,160 @@
+---
+title: "Draft"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# load data
+raw.questions <- read.csv("June 10-July 12, 2015 - Gaming, Jobs and Broadband_revised by Mei.csv",nrow=1)
+raw.data <- read.csv("June 10-July 12, 2015 - Gaming, Jobs and Broadband_revised by Mei.csv",skip=2,header=FALSE) 
+#raw.data$age <- as.numeric(raw.data$age) # convert all the variable to factors except for age
+names(raw.data) <-names(raw.questions)
+
+library(pscl) # for pesudo r square in logit model
+
+library(dplyr)
+# turn data into tbl_df by using dplyr
+raw.data<-tbl_df(raw.data)
+
+```
+
+
+# Question 1. Whether people who use social media to find a job tend to use online dating website?
+Thinking about social media sites like Facebook, Twitter or LinkedIn… Have you ever
+a.	Used social media to look for or research a job
+b.	Applied for a job that you found out about on social media
+c.	Used social media to let your friends know about a job that was available at your place of employment
+```{r}
+tab <- raw.data[,c("date1a","snsjob1a","snsjob1b","snsjob1c")]
+tab <- tab %>% filter(date1a==1|date1a==2,snsjob1a==1|snsjob1a==2,snsjob1a==1|snsjob1a==2,snsjob1b==1|snsjob1b==2,snsjob1c==1|snsjob1c==2)
+tab$date1a[which(tab["date1a"]==2)] <- 0
+chisq.test(table(tab$date1a,tab$snsjob1b))
+
+# chi-square test of each two variable in tab
+p.val=matrix(nrow=ncol(tab),ncol=ncol(tab))
+for (i in 1:ncol(tab)){
+  for (j in 1:ncol(tab)){
+    tab2<-data.frame(tab[,i],tab[,j])
+    table.test <- table(tab2)
+    p.val[i,j] <- chisq.test(table.test)$p.value
+  }
+}
+
+model_social<-glm(factor(date1a)~factor(snsjob1a),data=tab,family = "binomial")
+summary(model_social)
+pR2(model.social) 
+
+#test whether there is overdispersion
+fitod<-glm(factor(date1a)~factor(snsjob1a),data=tab,family = "quasibinomial")
+pchisq(summary(fitod)$dispersion*model.social$df.residual,model.social$df.residual,lower=F)
+
+model.social<-glm(factor(date1a)~factor(snsjob1b),data=tab,family = "binomial")
+summary(model.social)
+pR2(model.social) # pesudo r square
+
+```
+If change the dependent variable to date2a(online dating app), the snsjob1a is also significant, so people using social media to look for or research a job tend to go for online dating through Internet or smartphone app.
+
+
+# Question 2. cellphone and online dating app
+Do you ever use your cell phone to
+a.	Participate in a video call or video chat {modified Master CELLVCHT}
+b.	Buy a product online, such as books, music, toys or clothing {New}
+c.	Get directions, recommendations, or other information related to your location
+
+```{r}
+cellphone.tab <- raw.data[,c("date2a","q5a","q5b","q5c")]
+cellphone.tab <- filter(cellphone.table,date2a==1|date2a==2,q5a==1|q5a==2,q5b==1|q5b==2,q5c==1|q5c==2)
+cellphone.tab$date2a[which(cellphone.tab["date2a"]==2)] <- 0
+
+p.val2=matrix(nrow=ncol(cellphone.tab),ncol=ncol(cellphone.tab))
+for (i in 1:ncol(cellphone.tab)){
+  for (j in 1:ncol(cellphone.tab)){
+    tab2<-data.frame(cellphone.tab[,i],cellphone.tab[,j])
+    table.test <- table(tab2)
+    p.val2[i,j] <- chisq.test(table.test)$p.value
+  }
+}
+
+model.cellphone<-glm(date2a~q5a+q5b+q5c,data=cellphone.table,family = "binomial")
+summary(model.cellphone)
+# delete non-significant variable
+model.cellphone<-glm(date2a~q5a+q5b,data=cellphone.table,family = "binomial")
+summary(model.cellphone)
+pR2(model.cellphone)
+
+#test whether there is an overdispersion
+fitod<-glm(date2a~q5a+q5b,data=cellphone.table,family = "quasibinomial")
+pchisq(summary(fitod)$dispersion*model.cellphone$df.residual,model.cellphone$df.residual,lower=F)
+
+
+```
+Estimated parameters of q5a and q5b are significant, so there is larger probability that people who like to chatting online or shopping online would like to choose online dating app.
+
+Since the p-value is 0.4703885 >0.05, we fail to reject the hull hypothesis that the Dispersion parameter equals to 1, which means there is no overdispersion in this model.
+
+# Question 3: whether people who use online resource to find a job tend to use online dating website
+People may use many different resources when looking for a job. Thinking of your MOST RECENT job search, please tell me if you used any of the following resources. 
+
+d.Resources or information you found online
+
+```{r}
+resource.table <- raw.data[,c("date1a","job5d")]
+resource.table <- filter(resource.table,date1a==1|date1a==2,job5d==1|job5d==2)
+#resource_table$date1a[which(resource_table["date1a"]==2)] <- 0
+chitest.table<-table(resource.table)
+chisq.test(chitest.table)
+
+```
+The hull hypothesis whether the people using online resource to find a job is independent of using online dating website at .05 significance level.The p-value is 0.4271 > 0.05 and we fail to reject the hypothesis, so people using online resource to find a job is independent of using online dating website.
+
+
+# Question 4: Influece of Demographic Data, habbits of job searching and Internet using on whether to use online dating app
+
+```{r}
+job.table <- raw.data[,c('date2a','q5a','q5b','snsjob1a','age','sex','educ2','marital','party','inc','race','emplnw','ideo')]
+job.table <- filter(job.table,date2a==1|date2a==2,q5a==1|q5a==2,q5b==1|q5b==2,snsjob1a==1|snsjob1a==2,age<97,inc!=98,inc!=99,marital!=8,marital!=9,educ2!=98,educ2!=99,party!=8,party!=9,race!=9,race!=8,emplnw!=98,emplnw!=99)
+job.table$date2a[which(job.table["date2a"]==2)] <- 0
+
+model.logit <- glm(factor(date2a)~factor(q5a)+factor(q5b)+factor(snsjob1a)+age+factor(sex)+factor(educ2)+factor(marital)+factor(party)+factor(inc)+factor(race)+factor(emplnw),data=job.table,family = "binomial")
+summary(model.logit)
+
+model.logit2 <- glm(date2a~q5b+snsjob1a+marital,data=job.table,family = "binomial")
+summary(model.logit2)
+pR2(model.logit2)
+
+#test whether there is overdispersion
+fitod<-glm(date2a~q5b+snsjob1a+marital,data=job.table,family = "quasibinomial")
+pchisq(summary(fitod)$dispersion*model.logit2$df.residual,model.logit2$df.residual,lower=F)
+
+```
+snsjob1a: Used social media to look for or research a job
+q5bb: Buy a product online, such as books, music, toys or clothing
+marital: mariage status
+The above three variables are significant.
+
+# Question 5.What kind of people like to choose online dating (cluster)
+(still need time to work on this)
+
+```{r}
+#question data4c is reversd
+#for (i in 1:nrow(raw.data)){
+#  if (raw.data[i,"date4c"]==2 | raw.data[i,"date4c"]==1){
+#    raw.data[i,"date4c"]= abs(raw.data[i,"date4c"]-3)
+#  }
+#}
+
+#datingpeople<-raw.data %>% filter((eminuse==1|intmob==1)&smart1==1)
+#clusterdata<-select(datingpeople,date1a,date4b,date4c,date4d,date4e,date4f)
+#library(ClustOfVar)
+#for(i in ncol(clusterdata)){
+#  clusterdata[,i]<-as.numeric(clusterdata[,i])
+#}
+#km.out<-kmeans(clusterdata,2)
+
+```
+

@@ -1,0 +1,142 @@
+---
+- title:"corelation between job and online-dating"
+- author:"Chewei"
+- Date:01/10/2016
+---
+
+```{r include=FALSE, echo=FALSE}
+library(dplyr)
+library(ggplot2)
+require(rms)
+library(cowplot)
+library(pscl)
+```
+
+
+First, read data into file and combile data with colnames. 
+
+```{r}
+# this is the file which contains the questions 
+raw_question<-read.csv("June 10-July 12, 2015 - Gaming, Jobs and Broadband.csv"  )
+raw_question<-raw_question[,2]
+# the file contains response
+raw_data<-read.csv("June 10-July 12, 2015 - Gaming, Jobs and Broadband_revised by Mei.csv",colClasses = "factor")
+# turn data into tbl_df for using dplyr
+raw_data<-tbl_df(raw_data)
+# user devices 
+table(raw_data[,24])
+```
+1 = smartphone, 2 =feature phone,8 =not know, 9 = refuse
+
+  
+### Question 1 : If "using online dating webiste" is independent of "using datine app" ?
+#### Assumption:Tinder faces difficulties of rapid growth.Therefore, we are thinking developing more social login fuction, which will allow people who has an OKcupid account can easily transfer details into Tinder. 
+```{r}
+datingpeople<-raw_data %>%filter((eminuse==1|intmob==1)&smart1==1)
+tabledating<-table(datingpeople$date1a,datingpeople$date2a)
+
+ggplot(subset(datingpeople,date1a %in% c("1",2)),aes(x=date1a))+geom_bar(aes(fill=date2a))
+
+tabledating<-tabledating[2:3,2:3]
+chisq.test(tabledating)
+```
+Null hypothesis : "using online dating webiste" is indepent of "using datine app"  
+Alternative hypothesis :"using online dating webiste" is not indepent of "using datine app"  
+P-value is less than .05 significance level, therefore fail to accept null hypothesis  
+####Action: According to the Chisquare test, these two kind of users are realted, and thus, we decide to develop this function. 
+
+###Question 2: Can we say that people who uses dating website are more likely to be a user of dating app?
+#### Same question as question1, but this time we will use logitc regression model to assess the fit of the model. 
+```{r warning=FALSE}
+dating_between<-glm(date2a~date1a,data=datingpeople,family = "binomial")
+summary(dating_between)
+pR2(dating_between)
+```
+Null hypothesis : All coefficient should be zero. 
+Alternative hypothesis : There is one coefficient in logistic regression not equal to O
+date1a2 (do not use dating website) has a p-value less than 0.05 siginificant level, and therefore null hyothesis is rejected.   
+#### Action: People who use OKCUPID or other PC-based dating websites are more likely to be a user of dating app.
+
+
+* Date1a8 and date1a9 are people who answer "not sure" or refused to answer, which in turns provide no ability to predict if he/she is using mobile dating app. 
+
+###Question 3 : Difference of online dating between employment status.
+#### Assumption: In this question, we are going to lay the foundatino for our monetization strategy. This part will analyze  our users' employment status and if our users are attractive customers of advertisers. 
+*In this quesiton, we foucs more on people who use dating app. 
+```{r}
+datingpeople1<-datingpeople%>%filter(emplnw==1|emplnw==2|emplnw==3|emplnw==4)
+ggplot(data=datingpeople1,aes(x=emplnw))+geom_bar(stat="count",aes(fill=date2a))
+datejobtable<-table(datingpeople1$emplnw,datingpeople1$date2a)
+# exclude emplnw 5~9 (since too little obeservation, and date2a)
+datejobtable<-datejobtable[1:4,2:3] 
+datejobtable
+chisq.test(datejobtable)
+```
+From above graphic, we can find that people who have full-time work are more likely to be a dating app users. We futher conduct a chi-square test to testify if dating app usage will affect their employment status. The p-value is 0.04, below 0.05 siginificant level. Therefore, we prove that our users are potential customers for advertiser. 
+#### Action : We will use this figure in our sales kit to convince our advertisers that by investing in our in-app AD, they can acquire huge return. 
+
+
+###Question 4 : Is there a model can be used to describe job emplyment and dating app usage?  
+#### Assumption: We narrow down our potential customers to online job websites. Here we are going to access if there is any model we can use to predict one's usage of online job seeking.
+```{r}
+datingpeople[,"age"]<-as.numeric(unlist(datingpeople[,"age"]))
+for (i in 1:nrow(datingpeople)){
+  if (datingpeople[i,"marital"]=="1"){
+    datingpeople[i,"clsmari"]=1
+  }
+  else if (datingpeople[i,"marital"]=="2"){
+    datingpeople[i,"clsmari"]=1
+  }
+  else{
+    datingpeople[i,"clsmari"]=2
+  }
+}
+
+ggplot(datingpeople, aes(x=smjob1))+geom_bar(aes(fill=date2a))
+dating_between<-glm(smjob1~date2a+age+clsmari,data=datingpeople,family = "binomial")
+summary(dating_between)
+pR2(dating_between)
+#exp(confint(dating_between))
+#require(rms)
+#mm<-lrm(smjob1~date2a,data=datingpeople)
+#summary(mm)
+```
+If we use date2a (usin dating app) as predictaor of smjob1(using mobile phone to find job), the p-value of intercept, which is the base case of using dating app, is less than 0.05 significance; and p-value of date2a, which is not using dating app, is less than 00.05 significance. 
+#### Action: Merely using dating and age can give us 12% of R^2. We believe that if we can combine more demographic targeting in our tinder database, then we can have a more accurate targeting system for our advertisers. 
+
+
+
+
+```{r}
+g<-ggplot(data=datingpeople,aes(date2a,smjob1))
+```
+
+```{r}
+forkmeans<-datingpeople[,c("date4a","date4b","date4c","date4d","date4e","date4f")]
+
+#,"smjob4a","smjob4b","smjob4c","smjob4d","smjob4e"
+#如果加入其他變數，會有na值產生，所以你可寧要先在對資料做一次篩選，
+
+#for (i in ncol(forkmeans)){
+#  forkmeans[,i]<-as.numeric(forkmeans[,i])
+#}
+km.out<-kmeans(forkmeans,3)
+newgroup<-datingpeople%>%mutate(age1=as.numeric(age))
+cluster1<-km.out$cluster
+newgroup<-cbind(newgroup,cluster1)
+# age difference
+ggplot(data=newgroup,aes(x=age1))+geom_density()+facet_grid(cluster1~.)
+peopleincluster1<-datingpeople%>%filter(cluster1==1)
+dating_between1<-glm(smjob1~date2a+age+marital,data=peopleincluster1,family = "binomial")
+summary(dating_between1)
+pR2(dating_between1)
+
+peopleincluster2<-datingpeople%>%filter(cluster1==2)
+dating_between2<-glm(smjob1~date2a+age+marital,data=peopleincluster2,family = "binomial")
+summary(dating_between2)
+pR2(dating_between2)
+
+
+```
+
+
